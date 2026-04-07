@@ -122,7 +122,7 @@ class Player extends GameObject {
   dx /= length;
   dy /= length;
 
-  const speed = 120;
+  const speed = 24;
 
   bullets.push(
    new Bullet(this.x, this.y, dx * speed, dy * speed, this.color, this)
