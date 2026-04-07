@@ -13,14 +13,35 @@ class GameObject {
     }
 
     // 물리 업데이트 로직
-    update() {
+    update(canvasWidth, canvasHeight) {
         // 1. 마찰력 적용 (매 프레임 속도 감소)
         this.vx *= this.friction;
         this.vy *= this.friction;
 
+        // 아주 미세한 움직임 멈추기 (성능 및 떨림 방지)
+        if (Math.abs(this.vx) < 0.01) this.vx = 0;
+        if (Math.abs(this.vy) < 0.01) this.vy = 0;
+
         // 2. 위치 업데이트
         this.x += this.vx;
         this.y += this.vy;
+
+        // 3. 화면 경계 체크 (튕기게 하거나 멈추게 설정)
+        if (this.x < this.radius) {
+                this.x = this.radius;
+                this.vx *= -0.5; // 벽에 부딪히면 튕김 효과
+        } else if (this.x > canvasWidth - this.radius) {
+                this.x = canvasWidth - this.radius;
+                this.vx *= -0.5;
+        }
+
+        if (this.y < this.radius) {
+                this.y = this.radius;
+                this.vy *= -0.5;
+        } else if (this.y > canvasHeight - this.radius) {
+        this.y = canvasHeight - this.radius;
+        this.vy *= -0.5;
+        }
     }
 
     // 화면에 그리기
