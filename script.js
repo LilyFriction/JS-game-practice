@@ -60,13 +60,6 @@ class GameObject {
       this.y = height - this.radius;
       this.vy *= -0.5;
     }
-
-    // 물체 간 충돌
-    function isColliding(a, b) {
-      const dx = a.x - b.x;
-      const dy = a.y - b.y;
-      return Math.hypot(dx, dy) < a.radius + b.radius;
-    }
   }
 
   // 화면에 그리기
@@ -76,12 +69,21 @@ class GameObject {
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.closePath();
-
-    //체력 표시
-    ctx.fillStyle = 'black';
-    ctx.fillText(`P1 HP: ${p1.hp}`, 20, 30);
-    ctx.fillText(`P2 HP: ${p2.hp}`, 20, 60);
   }
+}
+
+// 물체 간 충돌
+function isColliding(a, b) {
+ const dx = a.x - b.x;
+ const dy = a.y - b.y;
+ return Math.hypot(dx, dy) < a.radius + b.radius;
+}
+
+// UI 그리기
+function drawUI() {
+  ctx.fillStyle = 'black';
+  ctx.fillText(`P1 HP: ${p1.hp}`, 20, 30);
+  ctx.fillText(`P2 HP: ${p2.hp}`, 20, 60);
 }
 
 /*
@@ -127,7 +129,7 @@ class Player extends GameObject {
     this.y,
     dx * speed,
     dy * speed,
-    this.color
+    this.color,
     this
   ));
 }
@@ -214,6 +216,8 @@ function gameLoop() {
 
   bullets.forEach(b => b.draw(ctx));
 
+  drawUI();
+
   // 다음 프레임 예약
   requestAnimationFrame(gameLoop);
 }
@@ -221,19 +225,17 @@ function gameLoop() {
 /*
  이벤트 리스너 등록
  */
-window.addEventListener('keydown', e => { keys[e.key] = true; });
-window.addEventListener('keyup', e => { keys[e.key] = false; });
 window.addEventListener('keydown', e => {
-  keys[e.key] = true;
-
-  // 슈팅 키 눌렀을 때
-  if (e.key === p1.controls.shoot) {
-    p1.shoot(bullets);
-  }
-  if (e.key === p2.controls.shoot) {
-    p2.shoot(bullets);
-  }
+ keys[e.key] = true;
+ 
+ if (e.key === p1.controls.shoot) {
+  p1.shoot(bullets);
+ }
+ if (e.key === p2.controls.shoot) {
+  p2.shoot(bullets);
+ }
 });
+window.addEventListener('keyup', e => { keys[e.key] = false; });
 
 // 게임 시작
 gameLoop();
