@@ -1,6 +1,6 @@
 // 1. 캔버스 엘리먼트 가져오기
-# const canvas = document.getElementById('gameCanvas');
-# const ctx = canvas.getContext('2d');
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
 canvas.width = 1500
 canvas.height = 900
@@ -79,9 +79,6 @@ class Player extends GameObject {
         if (this.vy < -this.maxSpeed) this.vy = -this.maxSpeed;
     }
 }
-// requestAnimationFrame : 브라우저 전용 루프 함수
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
 
 const p1 = new Player(100, 300, 'blue', { up: 'w', down: 's', left: 'a', right: 'd' });
 const p2 = new Player(700, 300, 'red', { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' });
@@ -102,7 +99,7 @@ function gameLoop() {
     // 3. 그리기
     p1.draw(ctx);
     p2.draw(ctx);
-
+    //브라우저 전용 루프 함수
     requestAnimationFrame(gameLoop); // 다음 프레임 예약
 }
 
