@@ -171,7 +171,7 @@ const p1 = new Player(100, 300, 'blue', {
 });
 
 const p2 = new Player(700, 300, 'red', { 
-  up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', shoot: 'Enter' 
+  up: 'arrowup', down: 'arrowdown', left: 'arrowleft', right: 'arrowright', shoot: 'enter' 
 });
 
 const keys = {}; // 눌린 키 상태 저장 객체
