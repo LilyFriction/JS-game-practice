@@ -65,7 +65,12 @@ class GameObject {
 
   // 화면에 그리기
   draw(ctx) {
-    ctx.fillStyle = this.color;
+    if (this.hitTimer > 0) {
+      ctx.fillStyle = 'white'; // 맞았을 때 반짝
+    } else {
+      ctx.fillStyle = this.color;
+    }
+    
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
@@ -75,9 +80,10 @@ class GameObject {
 
 // 물체 간 충돌
 function isColliding(a, b) {
- const dx = a.x - b.x;
- const dy = a.y - b.y;
- return Math.hypot(dx, dy) < a.radius + b.radius;
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  
+  return Math.hypot(dx, dy) < a.radius + b.radius;
 }
 
 // UI 그리기
@@ -96,6 +102,7 @@ class Player extends GameObject {
     this.controls = controls; // 조작키 설정 { up, down, left, right, shoot }
     this.hp = 5; // 체력
     this.cooldown = 0; // 쿨타임
+    this.hitTimer = 0; // 피격
   }
 
   handleInput(keys) {
@@ -212,6 +219,15 @@ function gameLoop() {
 
     if (isColliding(b, player)) {
       player.hp--;
+
+      //넉백
+      player.vx += b.vx * 0.2;
+      player.vy += b.vy * 0.2;
+
+      
+      //충돌시 히트타이머
+      player.hitTimer = 10;
+      
       bullets.splice(i, 1);
       break;
     }
