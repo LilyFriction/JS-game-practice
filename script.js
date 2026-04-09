@@ -137,7 +137,7 @@ class Player extends GameObject {
 
   shoot(bullets) {
     if (this.cooldown > 0) return;
-    this.cooldown = 100; // 프레임 기준
+    this.cooldown = 20; // 프레임 기준
     const speed = 24;
     bullets.push(
       new Bullet(this.x, this.y,
@@ -166,8 +166,8 @@ class Bullet extends GameObject {
     this.vx = vx;
     this.vy = vy;
     this.radius = 5;
-    this.life = 100; // 수명 (프레임 기준)
-    this.friction = 0.985
+    this.life = 1000; // 수명 (프레임 기준)
+    this.friction = 1 // 마찰 없음
     this.owner = owner;
   }
 
