@@ -110,7 +110,7 @@ class Player extends GameObject {
   constructor(x, y, color, controls) {
     super(x, y, color);
     this.controls = controls; // 조작키 설정 { up, down, left, right, shoot }
-    this.hp = 5; // 체력
+    this.hp = 10; // 체력
     this.cooldown = 0; // 쿨타임
     this.hitTimer = 0; // 피격
   }
@@ -137,7 +137,7 @@ class Player extends GameObject {
 
   shoot(bullets) {
     if (this.cooldown > 0) return;
-    this.cooldown = 10; // 프레임 기준
+    this.cooldown = 100; // 프레임 기준
     const speed = 24;
     bullets.push(
       new Bullet(this.x, this.y,
@@ -232,8 +232,8 @@ function gameLoop() {
       player.hp--;
 
       //넉백
-      player.vx += b.vx * 0.2;
-      player.vy += b.vy * 0.2;
+      player.vx += b.vx * 0.4;
+      player.vy += b.vy * 0.4;
 
       
       //충돌시 히트타이머
