@@ -137,11 +137,23 @@ function invertColor(c) {
 }
 
 function drawUI() {
-  ctx.fillStyle = 'black';
-  ctx.font = "20px Arial";
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'; // 약간 투명한 검정색
+  ctx.font = "bold 18px Arial";
+  
+  // --- Player 1 조작법 (왼쪽 상단) ---
   ctx.textAlign = "left";
-  ctx.fillText(`P1 HP: ${p1.hp}`, 50, 30);
-  ctx.fillText(`P2 HP: ${p2.hp}`, 50, 60);
+  ctx.fillText("P1 (Blue)", 20, 30);
+  ctx.font = "14px Arial";
+  ctx.fillText("Move: W, A, S, D", 20, 55);
+  ctx.fillText("Shoot: F", 20, 75);
+
+  // --- Player 2 조작법 (오른쪽 상단) ---
+  ctx.textAlign = "right";
+  ctx.font = "bold 18px Arial";
+  ctx.fillText("P2 (Red)", canvas.width - 20, 30);
+  ctx.font = "14px Arial";
+  ctx.fillText("Move: Arrow Keys", canvas.width - 20, 55);
+  ctx.fillText("Shoot: Num 9", canvas.width - 20, 75);
 }
 
 /*
@@ -187,11 +199,40 @@ class Player extends GameObject {
       )
     );
   }
+  
 
   update(canvasWidth, canvasHeight) {
     super.update(canvasWidth, canvasHeight);
     if (this.cooldown > 0) this.cooldown--;
     if (this.hitTimer > 0) this.hitTimer--;
+  }
+  
+  draw(ctx) {
+    // 1. 기존 플레이어 본체(원) 그리기
+    super.draw(ctx);
+
+    // 2. 머리 위 체력바 그리기
+    const barWidth = 10;  // 각 사각형의 가로 길이
+    const barHeight = 6;  // 각 사각형의 세로 길이
+    const spacing = 3;    // 사각형 사이의 간격
+    const totalBarWidth = (barWidth * 5) + (spacing * 4); // 전체 체력바 너비
+    
+    // 시작 X 위치 (플레이어 중심에서 왼쪽으로 절반만큼 이동)
+    let startX = this.x - totalBarWidth / 2;
+    // 시작 Y 위치 (플레이어 머리 위로 25픽셀 정도 띄움)
+    let startY = this.y - this.radius - 20;
+
+    for (let i = 0; i < 5; i++) {
+      if (i < this.hp) {
+        // 남은 체력은 현재 플레이어의 색상으로 채움 (또는 초록색)
+        ctx.fillStyle = `rgb(${this.color.r}, ${this.color.g}, ${this.color.b})`;
+        ctx.fillRect(startX + i * (barWidth + spacing), startY, barWidth, barHeight);
+      } else {
+        // 깎인 체력은 빈 칸으로 표시 (회색 테두리만 그리거나 흐리게 처리)
+        ctx.strokeStyle = "rgba(100, 100, 100, 0.5)";
+        ctx.strokeRect(startX + i * (barWidth + spacing), startY, barWidth, barHeight);
+      }
+    }
   }
 }
 
