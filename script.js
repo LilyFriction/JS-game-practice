@@ -1,40 +1,46 @@
 /* =========================================================================
    [전역 변수 및 캔버스 초기화]
+   게임의 전반적인 상태와 환경 설정을 관리합니다.
 ========================================================================= */
 
-// 게임 상태
+// 게임 상태 정의
 const GAME_STATE = {
   START: 'START',
   PLAYING: 'PLAYING',
   GAMEOVER: 'GAMEOVER'
 };
-let currentState = GAME_STATE.START;
-let winner = null;
+let currentState = GAME_STATE.START; // 현재 게임 상태
+let winner = null;                    // 승리자 정보 저장
 
+// 캔버스 엘리먼트 및 렌더링 컨텍스트 설정
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// 플레이어 속도 등 기본값
+// 게임 밸런스 및 시스템 설정값 (상수화)
 const SETTINGS = {
-  PLAYER_SPEED: 5,        // 최대 속도
-  PLAYER_ACCEL: 0.5,      // 가속도
-  PLAYER_FRICTION: 0.92,   // 마찰력 (낮을수록 빨리 멈춤)
-  BULLET_SPEED: 24,       // 총알 속도
-  SHOOT_COOLDOWN: 15,     // 연사 속도 (SHOOT_COOLDOWN 프레임에 1발)
-  MAX_HP: 5,              // 최대 체력
-  MAX_AMMO: 10,           // 탄창 최대 용량
-  RELOAD_TIME: 150,        // 재장전 시간 (60프레임 = 1초, 120 = 2초)
-  NORMAL_FONT_COLOR: 'rgba(0, 0, 0, 0.6)' // UI에 사용하는 기본 폰트 컬러
+  PLAYER_SPEED: 5,        // 최대 이동 속도 제한
+  PLAYER_ACCEL: 0.5,      // 이동 시 가속되는 정도
+  PLAYER_FRICTION: 0.92,  // 매 프레임 속도가 줄어드는 비율 (관성 효과)
+  BULLET_SPEED: 24,       // 발사된 총알의 속도
+  SHOOT_COOLDOWN: 15,     // 다음 발사까지 필요한 프레임 간격
+  MAX_HP: 5,              // 플레이어 최대 체력
+  MAX_AMMO: 10,           // 한 탄창에 들어가는 탄약 수
+  RELOAD_TIME: 150,       // 재장전 완료까지 걸리는 프레임 (약 2.5초)
+  NORMAL_FONT_COLOR: 'rgba(0, 0, 0, 0.6)' // 기본 UI 텍스트 투명도 및 색상
 };
 
+// 캔버스 크기 지정
 canvas.width = 1500;
 canvas.height = 900;
 
 /* =========================================================================
    [화면 렌더링 함수 모음]
+   게임 화면의 각 상태에 따라 시각적인 요소를 그리는 함수들입니다.
 ========================================================================= */
+
+// 게임 시작 대기 화면 (Press Any Key 메시지 깜빡임)
 function drawStartScreen() {
-  const blink = Math.floor(Date.now() / 500) % 2;
+  const blink = Math.floor(Date.now() / 500) % 2; // 0.5초 주기로 깜빡임 계산
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -49,6 +55,7 @@ function drawStartScreen() {
   ctx.fillText("2 Player Shooting Game", canvas.width / 2, canvas.height / 2 + 50);
 }
 
+// 게임 종료 화면 (승리자 표시 및 재시작 안내)
 function drawGameOver() {
   ctx.fillStyle = SETTINGS.NORMAL_FONT_COLOR;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -62,11 +69,11 @@ function drawGameOver() {
   ctx.fillText("Press R to Restart", canvas.width / 2, canvas.height / 2 + 50);
 }
 
+// 상단 정보 창 (조작법, 탄약 상태, 재장전 안내)
 function drawUI() {
-
   ctx.fillStyle = SETTINGS.NORMAL_FONT_COLOR;
   
-  // P1 조작법 및 탄약 (좌측 상단)
+  // Player 1 UI (좌측 상단)
   ctx.textAlign = "left";
   ctx.font = "bold 18px Arial";
   ctx.fillText("P1 (Blue)", 20, 30);
@@ -74,10 +81,11 @@ function drawUI() {
   ctx.fillText("Move: W, A, S, D | Shoot: F | Reload: V", 20, 55);
   
   ctx.font = "bold 16px Arial";
+  // 재장전 중일 때는 주황색으로 상태 표시
   ctx.fillStyle = p1.isReloading ? "orange" : SETTINGS.NORMAL_FONT_COLOR;
   ctx.fillText(`Ammo: ${p1.isReloading ? "RELOADING..." : p1.ammo + " / " + SETTINGS.MAX_AMMO}`, 20, 80);
 
-  // P2 조작법 및 탄약 (우측 상단)
+  // Player 2 UI (우측 상단)
   ctx.textAlign = "right";
   ctx.fillStyle = SETTINGS.NORMAL_FONT_COLOR;
   ctx.font = "bold 18px Arial";
@@ -90,6 +98,7 @@ function drawUI() {
   ctx.fillText(`Ammo: ${p2.isReloading ? "RELOADING..." : p2.ammo + " / " + SETTINGS.MAX_AMMO}`, canvas.width - 20, 80);
 }
 
+// 게임 재시작 시 플레이어 및 총알 상태 초기화
 function resetGame() {
   p1.x = 100; p1.y = 300; p1.vx = 0; p1.vy = 0;
   p1.hp = SETTINGS.MAX_HP; p1.ammo = SETTINGS.MAX_AMMO; p1.isReloading = false;
@@ -97,52 +106,64 @@ function resetGame() {
   p2.x = 1400; p2.y = 600; p2.vx = 0; p2.vy = 0;
   p2.hp = SETTINGS.MAX_HP; p2.ammo = SETTINGS.MAX_AMMO; p2.isReloading = false;
 
-  bullets.length = 0;
+  bullets.length = 0; // 화면상의 모든 총알 제거
   currentState = GAME_STATE.START;
   winner = null;
 }
 
 /* =========================================================================
    [유틸리티 함수 모음]
+   계산 및 시각 효과를 돕는 보조 함수들입니다.
 ========================================================================= */
+
+// 두 원형 객체 사이의 거리를 계산하여 충돌 여부 확인
 function isColliding(a, b) {
   const dx = a.x - b.x;
   const dy = a.y - b.y;
   return Math.hypot(dx, dy) < (a.radius + b.radius);
 }
 
+// 피격 시 플레이어의 색상을 순간적으로 반전시키는 기능
 function invertColor(c) {
   return { r: 255 - c.r, g: 255 - c.g, b: 255 - c.b };
 }
 
 /* =========================================================================
    [클래스 모음]
+   게임 내 모든 물리 객체의 설계도입니다.
 ========================================================================= */
+
+// 모든 게임 객체의 기본이 되는 클래스
 class GameObject {
   constructor(x, y, color) {
-    this.x = x; this.y = y;
-    this.vx = 0; this.vy = 0;
+    this.x = x; this.y = y;           // 위치 좌표
+    this.vx = 0; this.vy = 0;         // 현재 속도 (Vector X, Y)
     this.accel = SETTINGS.PLAYER_ACCEL;
     this.friction = SETTINGS.PLAYER_FRICTION;
     this.maxSpeed = SETTINGS.PLAYER_SPEED;
     this.color = color;
     this.radius = 15;
-    this.dir = { x: 0, y: -1 };
+    this.dir = { x: 0, y: -1 };       // 현재 바라보고 있는 방향 (발사 방향)
   }
 
+  // 매 프레임 위치 및 속도 업데이트
   update(canvasWidth, canvasHeight) {
+    // 마찰력 적용
     this.vx *= this.friction;
     this.vy *= this.friction;
 
+    // 미세한 속도는 0으로 처리하여 떨림 방지
     if (Math.abs(this.vx) < 0.01) this.vx = 0;
     if (Math.abs(this.vy) < 0.01) this.vy = 0;
 
+    // 위치 갱신
     this.x += this.vx;
     this.y += this.vy;
 
     this.checkBoundary(canvasWidth, canvasHeight);
   }
 
+  // 화면 밖으로 나가지 못하게 벽과 충돌 처리
   checkBoundary(width, height) {
     if (this.x < this.radius) { this.x = this.radius; this.vx *= -1; }
     else if (this.x > width - this.radius) { this.x = width - this.radius; this.vx *= -1; }
@@ -151,6 +172,7 @@ class GameObject {
     else if (this.y > height - this.radius) { this.y = height - this.radius; this.vy *= -1; }
   }
 
+  // 화면에 원 형태로 객체 그리기
   draw(ctx) {
     let c = this.hitTimer > 0 ? invertColor(this.color) : this.color;
     ctx.fillStyle = `rgb(${c.r}, ${c.g}, ${c.b})`;
@@ -161,20 +183,22 @@ class GameObject {
   }
 }
 
+// 플레이어 클래스 (조작 및 전투 로직 포함)
 class Player extends GameObject {
   constructor(x, y, color, controls) {
     super(x, y, color);
-    this.controls = controls;
+    this.controls = controls;         // 지정된 키 매핑
     this.hp = SETTINGS.MAX_HP;
-    this.cooldown = 0;
-    this.hitTimer = 0;
+    this.cooldown = 0;                // 발사 대기 시간 타이머
+    this.hitTimer = 0;                // 피격 이펙트 타이머
     
-    // 탄창 시스템
+    // 탄창 시스템 관련 속성
     this.ammo = SETTINGS.MAX_AMMO;
     this.reloadTimer = 0;
     this.isReloading = false;
   }
 
+  // 키 입력에 따른 가속도 및 방향 설정
   handleInput(keys) {
     let dx = 0; let dy = 0;
 
@@ -183,17 +207,20 @@ class Player extends GameObject {
     if (keys[this.controls.left]) { this.vx -= this.accel; dx -= 1; }
     if (keys[this.controls.right]) { this.vx += this.accel; dx += 1; }
 
+    // 이동 중일 때만 총구 방향(dir)을 갱신
     if (dx !== 0 || dy !== 0) {
       const len = Math.hypot(dx, dy);
       this.dir = { x: dx / len, y: dy / len };
     }
 
+    // 속도 제한(최대 속도 이상 가속 방지)
     this.vx = Math.max(-this.maxSpeed, Math.min(this.maxSpeed, this.vx));
     this.vy = Math.max(-this.maxSpeed, Math.min(this.maxSpeed, this.vy));
   }
 
+  // 총알 생성 및 탄약 차감 로직
   shoot(bullets) {
-    if (this.cooldown > 0 || this.isReloading) return;
+    if (this.cooldown > 0 || this.isReloading) return; // 쿨타임 중이거나 재장전 중이면 발사 불가
 
     if (this.ammo > 0) {
       this.ammo--;
@@ -206,12 +233,14 @@ class Player extends GameObject {
         this.color, this
       ));
 
+      // 마지막 탄환 발사 시 자동 재장전 시작
       if (this.ammo === 0) {
         this.startReload();
       }
     }
   }
 
+  // 재장전 프로세스 시작
   startReload() {
     if (!this.isReloading && this.ammo < SETTINGS.MAX_AMMO) {
       this.isReloading = true;
@@ -219,12 +248,14 @@ class Player extends GameObject {
     }
   }
 
+  // 플레이어 전용 업데이트 (물리 + 각종 타이머)
   update(canvasWidth, canvasHeight) {
     super.update(canvasWidth, canvasHeight);
     
     if (this.cooldown > 0) this.cooldown--;
     if (this.hitTimer > 0) this.hitTimer--;
 
+    // 재장전 시간 카운트다운
     if (this.isReloading) {
       this.reloadTimer--;
       if (this.reloadTimer <= 0) {
@@ -234,6 +265,7 @@ class Player extends GameObject {
     }
   }
 
+  // 플레이어 본체와 상단 체력바 렌더링
   draw(ctx) {
     super.draw(ctx);
 
@@ -245,6 +277,7 @@ class Player extends GameObject {
     let startX = this.x - (totalBarWidth / 2);
     let startY = this.y - this.radius - 20;
 
+    // 체력 칸 그리기
     for (let i = 0; i < SETTINGS.MAX_HP; i++) {
       if (i < this.hp) {
         ctx.fillStyle = `rgb(${this.color.r}, ${this.color.g}, ${this.color.b})`;
@@ -257,19 +290,20 @@ class Player extends GameObject {
   }
 }
 
+// 총알 클래스
 class Bullet extends GameObject {
   constructor(x, y, vx, vy, color, owner) {
     super(x, y, color);
     this.vx = vx; this.vy = vy;
     this.radius = 5;
-    this.life = 100;
-    this.friction = 1;
-    this.owner = owner;
+    this.life = 100;    // 총알이 사라지기 전까지 유지되는 시간(프레임)
+    this.friction = 1;  // 총알은 감속되지 않음
+    this.owner = owner; // 총알을 쏜 주인 정보 (자폭 방지용)
   }
 
   update(canvasWidth, canvasHeight) {
     super.update(canvasWidth, canvasHeight);
-    this.life--;
+    this.life--; // 매 프레임 수명 감소
   }
 
   isAlive() {
@@ -280,111 +314,127 @@ class Bullet extends GameObject {
 /* =========================================================================
    [인스턴스 생성 및 데이터 배열 초기화]
 ========================================================================= */
-const keys = {};
-const bullets = [];
+const keys = {};     // 현재 눌려있는 키 상태를 저장하는 객체
+const bullets = [];   // 화면에 존재하는 모든 총알 인스턴스 저장 배열
 
-// Player 1 (파란색, WASD & F, 수동재장전 V)
+// Player 1 설정 (파란색, WASD & F, 수동재장전 V)
 const p1 = new Player(100, 300, { r: 0, g: 0, b: 255 }, {
   up: 'w', down: 's', left: 'a', right: 'd', shoot: 'f', reload: 'v'
 });
 
-// Player 2 (빨간색, 방향키 & Num9, 수동재장전 Num0)
+// Player 2 설정 (빨간색, 방향키 & Num9, 수동재장전 Num0)
 const p2 = new Player(1400, 600, { r: 255, g: 0, b: 0 }, {
   up: 'arrowup', down: 'arrowdown', left: 'arrowleft', right: 'arrowright', shoot: '9', reload: '0'
 });
 
 /* =========================================================================
    [메인 게임 루프]
+   매 초 60회 가량 실행되며 물리 연산과 화면 그리기를 반복합니다.
 ========================================================================= */
 function gameLoop() {
+  // 1. 시작 화면 처리
   if (currentState === GAME_STATE.START) {
     drawStartScreen();
     requestAnimationFrame(gameLoop);
     return;
   }
 
+  // 2. 화면 지우기 (잔상 제거)
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // 3. 게임 플레이 로직
   if (currentState === GAME_STATE.PLAYING) {
+    // 플레이어 이동 업데이트
     p1.handleInput(keys);
     p1.update(canvas.width, canvas.height);
 
     p2.handleInput(keys);
     p2.update(canvas.width, canvas.height);
 
-    // 공격 처리 (꾹 누르기 지원)
+    // 공격 처리 (키를 누르고 있으면 shoot 메서드 반복 호출)
     if (keys[p1.controls.shoot]) p1.shoot(bullets);
     if (keys[p2.controls.shoot]) p2.shoot(bullets);
 
-    // 수동 재장전 처리
+    // 수동 재장전 입력 처리
     if (keys[p1.controls.reload]) p1.startReload();
     if (keys[p2.controls.reload]) p2.startReload();
 
-    // 총알 업데이트 및 충돌 판정
+    // 총알 물리 업데이트 및 충돌 검사
     for (let i = bullets.length - 1; i >= 0; i--) {
       const b = bullets[i];
       b.update(canvas.width, canvas.height);
 
+      // 수명이 다한 총알 제거
       if (!b.isAlive()) {
         bullets.splice(i, 1);
         continue;
       }
 
+      // 상대 플레이어와의 충돌 판정
       for (const player of [p1, p2]) {
-        if (b.owner === player) continue;
+        if (b.owner === player) continue; // 자신이 쏜 총알은 무시
 
         if (isColliding(b, player)) {
-          player.hp--;
-          player.vx += b.vx * 0.4;
+          player.hp--;                // 체력 감소
+          player.vx += b.vx * 0.4;    // 피격 시 넉백 효과 적용
           player.vy += b.vy * 0.4;
-          player.hitTimer = 10;
+          player.hitTimer = 10;       // 색상 반전 이펙트 활성화
           
-          bullets.splice(i, 1);
+          bullets.splice(i, 1);       // 충돌한 총알 제거
           break;
         }
       }
     }
 
-    // 승패 체크
+    // 승패 체크 (누군가의 HP가 0 이하가 되면 종료)
     if (p1.hp <= 0 || p2.hp <= 0) {
       winner = p1.hp <= 0 ? "P2" : "P1";
       currentState = GAME_STATE.GAMEOVER;
     }
   }
 
+  // 4. 객체 렌더링 순서 (플레이어 -> 총알 -> UI)
   p1.draw(ctx);
   p2.draw(ctx);
   bullets.forEach(b => b.draw(ctx));
   drawUI();
 
+  // 5. 게임 종료 화면 오버레이
   if (currentState === GAME_STATE.GAMEOVER) {
     drawGameOver();
   }
 
+  // 다음 프레임 요청
   requestAnimationFrame(gameLoop);
 }
 
 /* =========================================================================
    [이벤트 리스너 등록]
+   키보드 입력을 감지하고 게임 상태를 전환합니다.
 ========================================================================= */
+
+// 키를 눌렀을 때 실행
 window.addEventListener('keydown', e => {
   const key = e.key.toLowerCase();
   keys[key] = true;
 
+  // 어떤 키든 누르면 대기 화면에서 시작
   if (currentState === GAME_STATE.START) {
     currentState = GAME_STATE.PLAYING;
   }
 
+  // 종료 화면에서 R을 누르면 게임 리셋
   if (currentState === GAME_STATE.GAMEOVER && key === 'r') {
     resetGame();
     currentState = GAME_STATE.PLAYING;
   }
 });
 
+// 키에서 손을 뗐을 때 실행
 window.addEventListener('keyup', e => {
   const key = e.key.toLowerCase();
   keys[key] = false; 
 });
 
-// 엔진 시동
+// 모든 준비가 끝나면 루프 시작
 gameLoop();
