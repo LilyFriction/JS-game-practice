@@ -5,6 +5,7 @@ I'm practicing making games with JavaScript.
 A local 2-player top-down shooting game built with HTML5 Canvas and Vanilla JavaScript.
 
 🕹 조작 방법 (Controls)
+
 Player 1 (Blue)
 이동 (Move): W, A, S, D
 발사 (Shoot): F
