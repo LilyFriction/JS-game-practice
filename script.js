@@ -30,6 +30,11 @@ const SETTINGS = {
   NORMAL_FONT_COLOR: 'rgba(0, 0, 0, 0.6)' // 기본 UI 텍스트 투명도 및 색상
 };
 
+// FPS 고정
+const TARGET_FPS = 60;
+const FPS_INTERVAL = 1000 / TARGET_FPS;
+let lastTime = 0;
+
 // 캔버스 크기 지정
 canvas.width = 1500;
 canvas.height = 900;
@@ -380,80 +385,79 @@ function gameLoop(timestamp) {
   if (elapsed > FPS_INTERVAL) {
     // 다음 프레임 계산이 밀리지 않도록 초과된 자투리 시간을 보정 (매우 중요!)
     lastTime = timestamp - (elapsed % FPS_INTERVAL);
-    
-  // 1. 시작 화면 처리
-  if (currentState === GAME_STATE.START) {
-    drawStartScreen();
-    requestAnimationFrame(gameLoop);
-    return;
-  }
 
-  // 2. 화면 지우기 (잔상 제거)
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 1. 시작 화면 처리
+    if (currentState === GAME_STATE.START) {
+      drawStartScreen();
+    } else {
+      // 2. 화면 지우기 (잔상 제거)
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // 3. 게임 플레이 로직
-  if (currentState === GAME_STATE.PLAYING) {
-    // 플레이어 이동 업데이트
-    p1.handleInput(keys);
-    p1.update(canvas.width, canvas.height);
+      // 3. 게임 플레이 로직
+      if (currentState === GAME_STATE.PLAYING) {
+        // 플레이어 이동 업데이트
+        p1.handleInput(keys);
+        p1.update(canvas.width, canvas.height);
 
-    p2.handleInput(keys);
-    p2.update(canvas.width, canvas.height);
+        p2.handleInput(keys);
+        p2.update(canvas.width, canvas.height);
 
-    // 공격 처리 (키를 누르고 있으면 shoot 메서드 반복 호출)
-    if (keys[p1.controls.shoot]) p1.shoot(bullets);
-    if (keys[p2.controls.shoot]) p2.shoot(bullets);
+        // 공격 처리 (키를 누르고 있으면 shoot 메서드 반복 호출)
+        if (keys[p1.controls.shoot]) p1.shoot(bullets);
+        if (keys[p2.controls.shoot]) p2.shoot(bullets);
 
-    // 수동 재장전 입력 처리
-    if (keys[p1.controls.reload]) p1.startReload();
-    if (keys[p2.controls.reload]) p2.startReload();
+        // 수동 재장전 입력 처리
+        if (keys[p1.controls.reload]) p1.startReload();
+        if (keys[p2.controls.reload]) p2.startReload();
 
-    // 총알 물리 업데이트 및 충돌 검사
-    for (let i = bullets.length - 1; i >= 0; i--) {
-      const b = bullets[i];
-      b.update(canvas.width, canvas.height);
+        // 총알 물리 업데이트 및 충돌 검사
+        for (let i = bullets.length - 1; i >= 0; i--) {
+          const b = bullets[i];
+          b.update(canvas.width, canvas.height);
 
-      // 수명이 다한 총알 제거
-      if (!b.isAlive()) {
-        bullets.splice(i, 1);
-        continue;
-      }
+          // 수명이 다한 총알 제거
+          if (!b.isAlive()) {
+            bullets.splice(i, 1);
+            continue;
+          }
 
-      // 상대 플레이어와의 충돌 판정
-      for (const player of [p1, p2]) {
-        if (b.owner === player) continue; // 자신이 쏜 총알은 무시
+          // 상대 플레이어와의 충돌 판정
+          for (const player of [p1, p2]) {
+            if (b.owner === player) continue; // 자신이 쏜 총알은 무시
 
-        if (isColliding(b, player)) {
-          player.hp--;                // 체력 감소
-          player.vx += b.vx * 0.4;    // 피격 시 넉백 효과 적용
-          player.vy += b.vy * 0.4;
-          player.hitTimer = 10;       // 색상 반전 이펙트 활성화
-          
-          bullets.splice(i, 1);       // 충돌한 총알 제거
-          break;
+            if (isColliding(b, player)) {
+              player.hp--;                // 체력 감소
+              player.vx += b.vx * 0.4;    // 피격 시 넉백 효과 적용
+              player.vy += b.vy * 0.4;
+              player.hitTimer = 10;       // 색상 반전 이펙트 활성화
+              
+              bullets.splice(i, 1);       // 충돌한 총알 제거
+              break;
+            }
+          }
+        }
+
+        // 승패 체크 (누군가의 HP가 0 이하가 되면 종료)
+        if (p1.hp <= 0 || p2.hp <= 0) {
+          winner = p1.hp <= 0 ? "P2" : "P1";
+          currentState = GAME_STATE.GAMEOVER;
         }
       }
-    }
 
-    // 승패 체크 (누군가의 HP가 0 이하가 되면 종료)
-    if (p1.hp <= 0 || p2.hp <= 0) {
-      winner = p1.hp <= 0 ? "P2" : "P1";
-      currentState = GAME_STATE.GAMEOVER;
+      // 4. 객체 렌더링 순서 (플레이어 -> 총알 -> UI)
+      p1.draw(ctx);
+      p2.draw(ctx);
+      bullets.forEach(b => b.draw(ctx));
+      drawUI();
+
+      // 5. 게임 종료 화면 오버레이
+      if (currentState === GAME_STATE.GAMEOVER) {
+        drawGameOver();
+      }
     }
   }
 
-  // 4. 객체 렌더링 순서 (플레이어 -> 총알 -> UI)
-  p1.draw(ctx);
-  p2.draw(ctx);
-  bullets.forEach(b => b.draw(ctx));
-  drawUI();
-
-  // 5. 게임 종료 화면 오버레이
-  if (currentState === GAME_STATE.GAMEOVER) {
-    drawGameOver();
-  }
-
-  // 다음 프레임 요청
+  // 다음 프레임 요청은 항상 수행
   requestAnimationFrame(gameLoop);
 }
 
