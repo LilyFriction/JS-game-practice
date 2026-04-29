@@ -127,10 +127,12 @@ function drawUI() {
 
 // 게임 재시작 시 플레이어 및 총알 상태 초기화
 function resetGame() {
-  p1.x = 100; p1.y = 300; p1.vx = 0; p1.vy = 0;
+  p1.x = canvas.width * 0.1; p1.y = canvas.height * 0.6; // 화면 왼쪽에서 10% 지점, 밑에서 40% 지점
+  p1.vx = 0; p1.vy = 0;
   p1.hp = SETTINGS.MAX_HP; p1.ammo = SETTINGS.MAX_AMMO; p1.isReloading = false;
   
-  p2.x = 1820; p2.y = 780; p2.vx = 0; p2.vy = 0;
+  p2.x = canvas.width * 0.9; p2.y = canvas.height * 0.4; // 화면 오른쪽에서 10% 지점, 위에서 40% 지점
+  p2.vx = 0; p2.vy = 0;
   p2.hp = SETTINGS.MAX_HP; p2.ammo = SETTINGS.MAX_AMMO; p2.isReloading = false;
 
   bullets.length = 0; // 화면상의 모든 총알 제거
@@ -145,9 +147,10 @@ function resetGame() {
 
 // 두 원형 객체 사이의 거리를 계산하여 충돌 여부 확인
 function isColliding(a, b) {
+  const scale = getScale(); // 현재 화면 스케일 가져오기
   const dx = a.x - b.x;
   const dy = a.y - b.y;
-  return Math.hypot(dx, dy) < (a.radius + b.radius);
+  return Math.hypot(dx, dy) < ((a.radius * scale) + (b.radius * scale));
 }
 
 // 피격 시 플레이어의 색상을 순간적으로 반전시키는 기능
@@ -231,10 +234,12 @@ class Player extends GameObject {
   // 키 입력에 따른 가속도 및 방향 설정
   handleInput(keys) {
     let dx = 0; let dy = 0;
+    const scale = getScale(); // 현재 화면 배율 가져오기
     
     // 재장전 중이면 속도를 절반으로 줄임
-    const currentAccel = this.isReloading ? this.accel * SETTINGS.RELOAD_SPEED_MULTIPLIER : this.accel;
-    const currentMaxSpeed = this.isReloading ? this.maxSpeed * SETTINGS.RELOAD_SPEED_MULTIPLIER : this.maxSpeed;
+    // 2026.04.29, 속도를 반응형으로 변경함
+    const currentAccel = (this.isReloading ? this.accel * SETTINGS.RELOAD_SPEED_MULTIPLIER : this.accel) * scale;
+    const currentMaxSpeed = (this.isReloading ? this.maxSpeed * SETTINGS.RELOAD_SPEED_MULTIPLIER : this.maxSpeed) * scale;
 
     if (keys[this.controls.up]) { this.vy -= currentAccel; dy -= 1; }
     if (keys[this.controls.down]) { this.vy += currentAccel; dy += 1; }
@@ -254,6 +259,8 @@ class Player extends GameObject {
 
   // 총알 생성 및 탄약 차감 로직
   shoot(bullets) {
+    // 2026.04.29, 속도를 반응형으로 변경함
+    const scale = getScale() // 현재 화면 배율 가져오기
     if (this.cooldown > 0 || this.isReloading) return; // 쿨타임 중이거나 재장전 중이면 발사 불가
 
     if (this.ammo > 0) {
@@ -262,8 +269,8 @@ class Player extends GameObject {
       
       bullets.push(new Bullet(
         this.x, this.y, 
-        this.dir.x * SETTINGS.BULLET_SPEED, 
-        this.dir.y * SETTINGS.BULLET_SPEED, 
+        this.dir.x * SETTINGS.BULLET_SPEED * scale, 
+        this.dir.y * SETTINGS.BULLET_SPEED * scale, 
         this.color, this
       ));
 
@@ -384,12 +391,12 @@ const keys = {};     // 현재 눌려있는 키 상태를 저장하는 객체
 const bullets = [];   // 화면에 존재하는 모든 총알 인스턴스 저장 배열
 
 // Player 1 설정 (파란색, WASD & F, 수동재장전 R)
-const p1 = new Player(100, 300, { r: 0, g: 0, b: 255 }, {
+const p1 = new Player(canvas.width * 0.1, canvas.height * 0.6, { r: 0, g: 0, b: 255 }, {
   up: 'w', down: 's', left: 'a', right: 'd', shoot: 'f', reload: 'r'
 });
 
 // Player 2 설정 (빨간색, IJKL & ;, 수동재장전 P)
-const p2 = new Player(1820, 780, { r: 255, g: 0, b: 0 }, {
+const p2 = new Player(canvas.width * 0.9, canvas.height * 0.4, { r: 255, g: 0, b: 0 }, {
   up: 'i', down: 'k', left: 'j', right: 'l', shoot: ';', reload: 'p'
 });
 
@@ -450,9 +457,10 @@ function gameLoop(timestamp) {
             if (b.owner === player) continue; // 자신이 쏜 총알은 무시
 
             if (isColliding(b, player)) {
+              const scale = getScale()    // 현재 화면 배율 가져오기
               player.hp--;                // 체력 감소
-              player.vx += b.vx * 0.4;    // 피격 시 넉백 효과 적용
-              player.vy += b.vy * 0.4;
+              player.vx += b.vx * 0.4 * scale;    // 피격 시 넉백 효과 적용
+              player.vy += b.vy * 0.4 * scale;
               player.hitTimer = 10;       // 색상 반전 이펙트 활성화
               
               bullets.splice(i, 1);       // 충돌한 총알 제거
